@@ -338,7 +338,8 @@ def do_seg(
                 # soft voting - sum the softmax scores to return the new TTA estimated softmax scores
                 est_label = est_label + est_label2 + est_label3 + est_label4
                 del est_label2, est_label3, est_label4
-
+            
+            est_label = est_label.astype('float32')
             E0.append(
                 resize(est_label[:, :, 0], (w, h), preserve_range=True, clip=True)
             )
