@@ -280,16 +280,22 @@ def do_seg(
 
     if WRITE_MODELMETADATA:
         metadatadict["input_file"] = f
+        
+    # directory to hold the outputs of the models is named 'out' by default
+    out_dir_name = 'out'
+    # get the name of the model from the metadatadict and use it to name the directory to hold the outputs of the models
+    if len(metadatadict['model_weights']) > 0:
+        out_dir_name = metadatadict['model_weights'][0].split(os.sep)[-2]
+    
+    # create a directory to hold the outputs of the models, by default name it 'out' or the model name if it exists in metadatadict
+    out_dir_path = os.path.normpath(sample_direc + os.sep + out_dir_name)
+    if not os.path.exists(out_dir_path):
+        os.mkdir(out_dir_path)
 
     segfile = os.path.normpath(segfile)
     segfile = segfile.replace(
-        os.path.normpath(sample_direc), os.path.normpath(sample_direc + os.sep + "out")
+        os.path.normpath(sample_direc), os.path.normpath(sample_direc + os.sep + out_dir_name)
     )
-
-    try:
-        os.mkdir(os.path.normpath(sample_direc + os.sep + "out"))
-    except:
-        pass
 
     if WRITE_MODELMETADATA:
         metadatadict["nclasses"] = NCLASSES
