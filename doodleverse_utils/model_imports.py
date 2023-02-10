@@ -30,6 +30,8 @@ import tensorflow.keras.backend as K
 # keras functions for early stopping and model weights saving
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
+from transformers import TFSegformerForSemanticSegmentation
+
 SEED = 42
 np.random.seed(SEED)
 AUTO = tf.data.experimental.AUTOTUNE  # used in tf.data.Dataset API
@@ -43,6 +45,27 @@ print("Eager mode: ", tf.executing_eagerly())
 ###############################################################
 ### MODEL ARCHITECTURES
 ###############################################################
+def segformer(
+    id2label,
+    num_classes=2,
+):
+    """
+    https://keras.io/examples/vision/segformer/
+    https://huggingface.co/nvidia/mit-b0
+    """
+
+    label2id = {label: id for id, label in id2label.items()}
+    model_checkpoint = "nvidia/mit-b0"
+
+    model = TFSegformerForSemanticSegmentation.from_pretrained(
+        model_checkpoint,
+        num_labels=num_classes,
+        id2label=id2label,
+        label2id=label2id,
+        ignore_mismatched_sizes=True,
+    )
+    return model
+
 
 # -----------------------------------
 def simple_resunet(

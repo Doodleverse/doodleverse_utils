@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2021-2022, Marda Science LLC
+# Copyright (c) 2021-23, Marda Science LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -175,7 +175,7 @@ def inpaint_nans(im):
 
 
 # -----------------------------------
-def plot_seg_history_iou(history, train_hist_fig):
+def plot_seg_history_iou(history, train_hist_fig, MODEL):
     """
     "plot_seg_history_iou(history, train_hist_fig)"
     This function plots the training history of a model
@@ -189,21 +189,23 @@ def plot_seg_history_iou(history, train_hist_fig):
     n = len(history.history["val_loss"])
 
     plt.figure(figsize=(20, 10))
-    plt.subplot(121)
-    plt.plot(
-        np.arange(1, n + 1), history.history["mean_iou"], "b", label="train accuracy"
-    )
-    plt.plot(
-        np.arange(1, n + 1),
-        history.history["val_mean_iou"],
-        "k",
-        label="validation accuracy",
-    )
-    plt.xlabel("Epoch number", fontsize=10)
-    plt.ylabel("Mean IoU Coefficient", fontsize=10)
-    plt.legend(fontsize=10)
+    if MODEL!='segformer':
+        plt.subplot(121)
+        plt.plot(
+            np.arange(1, n + 1), history.history["mean_iou"], "b", label="train accuracy"
+        )
+        plt.plot(
+            np.arange(1, n + 1),
+            history.history["val_mean_iou"],
+            "k",
+            label="validation accuracy",
+        )
+        plt.xlabel("Epoch number", fontsize=10)
+        plt.ylabel("Mean IoU Coefficient", fontsize=10)
+        plt.legend(fontsize=10)
 
-    plt.subplot(122)
+        plt.subplot(122)
+
     plt.plot(np.arange(1, n + 1), history.history["loss"], "b", label="train loss")
     plt.plot(
         np.arange(1, n + 1), history.history["val_loss"], "k", label="validation loss"
