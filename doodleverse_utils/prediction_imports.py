@@ -126,7 +126,7 @@ def seg_file2tensor_3band(f, TARGET_SIZE):
 
 # =========================================================
 def do_seg(
-    f, M, metadatadict, sample_direc, 
+    f, M, metadatadict, MODEL, sample_direc, 
     NCLASSES, N_DATA_BANDS, TARGET_SIZE, TESTTIMEAUG, WRITE_MODELMETADATA,
     OTSU_THRESHOLD,
     out_dir_name='out'
