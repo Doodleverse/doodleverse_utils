@@ -440,22 +440,22 @@ def do_seg(
         plt.imshow(bigimage, cmap='gray')
     else:
         plt.imshow(bigimage[:, :, :3])
-    if NCLASSES>2:
-        plt.imshow(color_label, alpha=0.5)
-    elif NCLASSES==2:
-        cs = plt.contour(est_label, [-99,0,99], colors='r')
+    # if NCLASSES>2:
+    plt.imshow(color_label, alpha=0.5)
+    # elif NCLASSES==2:
+    #     cs = plt.contour(est_label, [-99,0,99], colors='r')
     plt.axis("off")
     # plt.show()
     plt.savefig(segfile, dpi=200, bbox_inches="tight")
     plt.close("all")
 
-    if NCLASSES==2:
-        segfile = segfile.replace("_overlay.png", "_result.mat")
-        p = cs.collections[0].get_paths()[0]
-        v = p.vertices
-        x = v[:,0]
-        y = v[:,1]
-        io.savemat(segfile, dict(x=x, y=y))
+    # if NCLASSES==2:
+    #     segfile = segfile.replace("_overlay.png", "_result.mat")
+    #     p = cs.collections[0].get_paths()[0]
+    #     v = p.vertices
+    #     x = v[:,0]
+    #     y = v[:,1]
+    #     io.savemat(segfile, dict(x=x, y=y))
 
 # --------------------------------------------------------
 def make_gradcam_heatmap(image, model):
