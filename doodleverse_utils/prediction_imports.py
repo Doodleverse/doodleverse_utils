@@ -167,6 +167,8 @@ def do_seg(
         image = standardize(image.numpy()).squeeze()
 
         if MODEL=='segformer':
+            if N_DATA_BANDS == 1:
+                image = np.dstack((image, image, image))
             image = tf.transpose(image, (2, 0, 1))
 
         E0 = []
@@ -281,21 +283,6 @@ def do_seg(
 
     else:  ###NCLASSES>2
 
-        # if N_DATA_BANDS <= 3:
-        #     image, w, h, bigimage = seg_file2tensor_3band(
-        #         f, TARGET_SIZE
-        #     )  
-        #     w = w.numpy()
-        #     h = h.numpy()
-        # else:
-        #     image, w, h, bigimage = seg_file2tensor_ND(f, TARGET_SIZE)
-
-        # image = standardize(image.numpy())
-        # # return the base prediction
-        # if N_DATA_BANDS == 1:
-        #     image = image[:, :, 0]
-        #     bigimage = np.dstack((bigimage, bigimage, bigimage))
-
         if N_DATA_BANDS <= 3:
             image, w, h, bigimage = seg_file2tensor_3band(f, TARGET_SIZE)
         else:
@@ -304,6 +291,8 @@ def do_seg(
         image = standardize(image.numpy()).squeeze()
 
         if MODEL=='segformer':
+            if N_DATA_BANDS == 1:
+                image = np.dstack((image, image, image))
             image = tf.transpose(image, (2, 0, 1))
 
         est_label = np.zeros((TARGET_SIZE[0], TARGET_SIZE[1], NCLASSES))
