@@ -167,7 +167,7 @@ def do_seg(
         image = standardize(image.numpy()).squeeze()
 
         if MODEL=='segformer':
-            if N_DATA_BANDS == 1:
+            if np.ndim(image)==2:
                 image = np.dstack((image, image, image))
             image = tf.transpose(image, (2, 0, 1))
 
@@ -291,7 +291,7 @@ def do_seg(
         image = standardize(image.numpy()).squeeze()
 
         if MODEL=='segformer':
-            if N_DATA_BANDS == 1:
+            if np.ndim(image)==2:
                 image = np.dstack((image, image, image))
             image = tf.transpose(image, (2, 0, 1))
 
