@@ -43,8 +43,6 @@ import matplotlib.pyplot as plt
 import tensorflow as tf  # numerical operations on gpu
 import tensorflow.keras.backend as K
 
-# import pydensecrf.densecrf as dcrf
-# from pydensecrf.utils import create_pairwise_bilateral, unary_from_softmax
 
 SEED = 42
 np.random.seed(SEED)
@@ -262,13 +260,6 @@ def do_seg(
         if WRITE_MODELMETADATA:
             metadatadict["av_softmax_scores"] = softmax_scores
 
-        # if DO_CRF:
-        #     est_label, l_unique = crf_refine(softmax_scores, bigimage, NCLASSES+1, 1, 1, 2)
-
-        #     est_label = est_label-1
-        #     if WRITE_MODELMETADATA:
-        #         metadatadict["otsu_threshold"] = np.nan
-
         if OTSU_THRESHOLD:
             thres = threshold_otsu(est_label)
             # print("Class threshold: %f" % (thres))
@@ -360,6 +351,7 @@ def do_seg(
         if MODEL=='segformer':
             est_label = resize(est_label, (1, NCLASSES, TARGET_SIZE[0],TARGET_SIZE[1]), preserve_range=True, clip=True).squeeze()
             est_label = np.transpose(est_label, (1,2,0))
+            est_label = resize(est_label, (w, h))
         else:
             est_label = resize(est_label, (w, h))
 
@@ -372,14 +364,6 @@ def do_seg(
         if WRITE_MODELMETADATA:
             metadatadict["av_softmax_scores"] = softmax_scores
 
-        # if DO_CRF:
-        #     est_label, l_unique = crf_refine(softmax_scores, bigimage, NCLASSES, 1, 1, 2)
-
-        #     est_label = est_label-1
-        #     if WRITE_MODELMETADATA:
-        #         metadatadict["otsu_threshold"] = np.nan
-
-        # else:
         est_label = np.argmax(softmax_scores, -1)
 
     # heatmap = resize(heatmap,(w,h), preserve_range=True, clip=True)
@@ -444,6 +428,7 @@ def do_seg(
 
         np.savez_compressed(segfile, **metadatadict)
 
+    #### plot overlay
     segfile = segfile.replace("_res.npz", "_overlay.png")
 
     if N_DATA_BANDS <= 3:
@@ -453,7 +438,6 @@ def do_seg(
 
     plt.imshow(color_label, alpha=0.5)
     plt.axis("off")
-    # plt.show()
     plt.savefig(segfile, dpi=200, bbox_inches="tight")
     plt.close("all")
 
@@ -472,22 +456,28 @@ def do_seg(
         plt.imshow(bigimage, cmap='gray')
     else:
         plt.imshow(bigimage[:, :, :3])
-    # if NCLASSES>2:
     plt.imshow(color_label, alpha=0.5)
-    # elif NCLASSES==2:
-    #     cs = plt.contour(est_label, [-99,0,99], colors='r')
     plt.axis("off")
-    # plt.show()
     plt.savefig(segfile, dpi=200, bbox_inches="tight")
     plt.close("all")
 
-    # if NCLASSES==2:
-    #     segfile = segfile.replace("_overlay.png", "_result.mat")
-    #     p = cs.collections[0].get_paths()[0]
-    #     v = p.vertices
-    #     x = v[:,0]
-    #     y = v[:,1]
-    #     io.savemat(segfile, dict(x=x, y=y))
+
+    #### plot overlay of per-class probabilities
+    for kclass in range(softmax_scores.shape[-1]):
+        tmpfile = segfile.replace("_overlay.png", "_overlay_"+str(kclass)+"prob.png")
+
+        if N_DATA_BANDS <= 3:
+            plt.imshow(bigimage, cmap='gray')
+        else:
+            plt.imshow(bigimage[:, :, :3])
+
+        plt.imshow(softmax_scores[:,:,kclass], alpha=0.5, vmax=1, vmin=0)
+        plt.axis("off")
+        plt.colorbar()
+        plt.savefig(tmpfile, dpi=200, bbox_inches="tight")
+        plt.close("all")
+
+
 
 # --------------------------------------------------------
 def make_gradcam_heatmap(image, model):

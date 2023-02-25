@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2021-22, Marda Science LLC
+# Copyright (c) 2021-23, Marda Science LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,10 @@ import tensorflow.keras.backend as K
 # keras functions for early stopping and model weights saving
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
-from transformers import TFSegformerForSemanticSegmentation
+try:
+    from transformers import TFSegformerForSemanticSegmentation
+except:
+    print("Transformers library did not load")
 
 SEED = 42
 np.random.seed(SEED)
@@ -158,16 +161,7 @@ def simple_resunet(
             activation=activation,
             strides=strides,
         )  # (1,1))
-    # outputs = tf.keras.layers.Conv2D(num_classes, (1, 1), activation=output_activation)(x)
 
-    # ## classify
-    # if num_classes == 1:
-    #     outputs = tf.keras.layers.Conv2D(
-    #         num_classes, (1, 1), padding="same", activation="sigmoid"
-    #     )(
-    #         x
-    #     )  #
-    # else:
     outputs = tf.keras.layers.Conv2D(
         num_classes, (1, 1), padding="same", activation="softmax"#, dtype='float32'
     )(
@@ -269,14 +263,6 @@ def simple_unet(
             activation=activation,
         )
 
-    # outputs = tf.keras.layers.Conv2D(num_classes, (1, 1), activation=output_activation)(x)
-
-    # ## classify
-    # if num_classes == 1:
-    #     outputs = tf.keras.layers.Conv2D(
-    #         num_classes, (1, 1), padding="same", activation="sigmoid"
-    #     )(x)
-    # else:
     outputs = tf.keras.layers.Conv2D(
         num_classes, (1, 1), padding="same", activation="softmax"#, dtype='float32'
     )(x)
@@ -380,14 +366,6 @@ def simple_satunet(
             activation=activation,
         )
 
-    # outputs = tf.keras.layers.Conv2D(num_classes, (1, 1), activation=output_activation)(x)
-
-    # ## classify
-    # if num_classes == 1:
-    #     outputs = tf.keras.layers.Conv2D(
-    #         num_classes, (1, 1), padding="same", activation="sigmoid"
-    #     )(x)
-    # else:
     outputs = tf.keras.layers.Conv2D(
         num_classes, (1, 1), padding="same", activation="softmax"#, dtype='float32'
     )(x)
@@ -529,12 +507,6 @@ def custom_resunet(
         _, f, kernel_size=kernel_size, dropout=dropout, dropout_type=dropout_type
     )
 
-    # ## classify
-    # if nclasses == 1:
-    #     outputs = tf.keras.layers.Conv2D(
-    #         nclasses, (1, 1), padding="same", activation="sigmoid"
-    #     )(_)
-    # else:
     outputs = tf.keras.layers.Conv2D(
         nclasses, (1, 1), padding="same", activation="softmax"#, dtype='float32'
     )(_)
@@ -674,12 +646,6 @@ def custom_unet(
         _, f, kernel_size=kernel_size, dropout=dropout, dropout_type=dropout_type
     )
 
-    # ## classify
-    # if nclasses == 1:
-    #     outputs = tf.keras.layers.Conv2D(
-    #         nclasses, (1, 1), padding="same", activation="sigmoid"
-    #     )(_)
-    # else:
     outputs = tf.keras.layers.Conv2D(
         nclasses, (1, 1), padding="same", activation="softmax"#, dtype='float32'
     )(_)
@@ -737,9 +703,6 @@ def conv_block(
     OUTPUTS:
         * keras layer, output of the batch normalized convolution
     """
-
-    # dropout_type =  "standard"
-    # dropout=0.1
 
     if dropout_type == "spatial":
         DO = tf.keras.layers.SpatialDropout2D
