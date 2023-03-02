@@ -25,7 +25,7 @@
 
 from .imports import standardize, label_to_colors, fromhex
 
-import os 
+import os,gc 
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import io
@@ -50,10 +50,10 @@ AUTO = tf.data.experimental.AUTOTUNE  # used in tf.data.Dataset API
 
 tf.random.set_seed(SEED)
 
-print("Version: ", tf.__version__)
-print("Eager mode: ", tf.executing_eagerly())
-print("GPU name: ", tf.config.experimental.list_physical_devices("GPU"))
-print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices("GPU")))
+# print("Version: ", tf.__version__)
+# print("Eager mode: ", tf.executing_eagerly())
+# print("GPU name: ", tf.config.experimental.list_physical_devices("GPU"))
+# print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices("GPU")))
 
 ##========================================================
 def rescale(dat,
@@ -130,6 +130,12 @@ def do_seg(
     out_dir_name='out'
 ):
 
+    Mc = []
+    for m in M:
+        m.compile(optimizer='adam')
+        Mc.append(m)
+    # del M
+
     if f.endswith("jpg"):
         segfile = f.replace(".jpg", "_predseg.png")
     elif f.endswith("png"):
@@ -172,7 +178,7 @@ def do_seg(
         E0 = []
         E1 = []
 
-        for counter, model in enumerate(M):
+        for counter, model in enumerate(Mc):#M):
             # heatmap = make_gradcam_heatmap(tf.expand_dims(image, 0) , model)
 
             try:
@@ -300,8 +306,6 @@ def do_seg(
                     est_label = model.predict(tf.expand_dims(image[:,:,0], 0), batch_size=1).logits
                 else:
                     est_label = model.predict(tf.expand_dims(image[:,:,0], 0), batch_size=1).squeeze()
-
-            # est_label = model.predict(tf.expand_dims(image, 0), batch_size=1).squeeze()
 
             if TESTTIMEAUG == True:
                 # return the flipped prediction
@@ -476,6 +480,8 @@ def do_seg(
         plt.colorbar()
         plt.savefig(tmpfile, dpi=200, bbox_inches="tight")
         plt.close("all")
+
+    gc.collect()
 
 
 
