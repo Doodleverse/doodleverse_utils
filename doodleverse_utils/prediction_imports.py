@@ -217,7 +217,7 @@ def est_label_binary(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE,w,h):
                 est_label = model(tf.expand_dims(image, 0)).logits
             else:
                 est_label = tf.squeeze(model.predict(tf.expand_dims(image, 0), batch_size=1))
-                
+
         except:
             if MODEL=='segformer':
                 est_label = model.predict(tf.expand_dims(image[:,:,0], 0), batch_size=1).logits
@@ -292,6 +292,8 @@ def do_seg(
 ):
     
     if profile=='meta':
+        WRITE_MODELMETADATA = True
+    if profile=='full':
         WRITE_MODELMETADATA = True
 
     Mc = compile_models(M, MODEL)
@@ -455,7 +457,7 @@ def do_seg(
         if profile !='minimal':
             np.savez_compressed(segfile, **metadatadict)
 
-    if (profile !='minimal') and (profile !='meta'):
+    if profile == 'full': #(profile !='minimal') and (profile !='meta'):
         #### plot overlay
         segfile = segfile.replace("_res.npz", "_overlay.png")
 
@@ -489,7 +491,7 @@ def do_seg(
         plt.savefig(segfile, dpi=200, bbox_inches="tight")
         plt.close("all")
 
-    if (profile !='minimal') and (profile !='meta'):
+    if profile == 'full': #(profile !='minimal') and (profile !='meta'):
 
         #### plot overlay of per-class probabilities
         for kclass in range(softmax_scores.shape[-1]):
