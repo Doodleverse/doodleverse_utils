@@ -454,8 +454,7 @@ def do_seg(
 
     if WRITE_MODELMETADATA:
         metadatadict["grey_label"] = est_label
-        if profile !='minimal':
-            np.savez_compressed(segfile, **metadatadict)
+        np.savez_compressed(segfile, **metadatadict)
 
     if profile == 'full': #(profile !='minimal') and (profile !='meta'):
         #### plot overlay
