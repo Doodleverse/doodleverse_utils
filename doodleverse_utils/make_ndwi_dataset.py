@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2022, Marda Science LLC
+# Copyright (c) 2022-2023, Marda Science LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ from glob import glob
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from skimage.morphology import dilation, disk
-
+from random import shuffle
 ###===========================================
 
 ##========================================================
@@ -70,7 +70,7 @@ else:
 
 
 root = Tk()
-root.filename =  filedialog.askdirectory(initialdir = os.getcwd(),title = "Select directory for OUTPUT files")
+root.filename =  filedialog.askdirectory(initialdir = os.path.dirname(configfile),title = "Select directory for OUTPUT files")
 output_data_path = root.filename
 print(output_data_path)
 root.withdraw()
@@ -198,14 +198,109 @@ print("{} sets of {} image files".format(len(W),len(files)))
 ## NON-AUGMENTED FILES
 ##========================================================
 
+#make output direc structure
+try:
+    os.mkdir(output_data_path+os.sep+'train_data')
+    os.mkdir(output_data_path+os.sep+'val_data')
+except:
+    pass
 
-print("Creating non-augmented subset")
+try:
+    os.mkdir(output_data_path+os.sep+'train_data'+os.sep+'train_rgb')
+    os.mkdir(output_data_path+os.sep+'train_data'+os.sep+'train_nir')
+    os.mkdir(output_data_path+os.sep+'train_data'+os.sep+'train_labels')
+    os.mkdir(output_data_path+os.sep+'train_data'+os.sep+'train_npzs')
+    os.mkdir(output_data_path+os.sep+'val_data'+os.sep+'val_rgb')
+    os.mkdir(output_data_path+os.sep+'val_data'+os.sep+'val_nir')
+    os.mkdir(output_data_path+os.sep+'val_data'+os.sep+'val_labels')
+    os.mkdir(output_data_path+os.sep+'val_data'+os.sep+'val_npzs')
+except:
+    pass
+
+###======================================
+rgb_files = [f[0] for f in files]
+nir_files = [f[1] for f in files]
+
+list_ds_rgb_images = tf.data.Dataset.list_files(rgb_files, shuffle=False) ##dont shuffle here
+list_ds_nir_images = tf.data.Dataset.list_files(nir_files, shuffle=False) ##dont shuffle here
+
+list_ds_labels = tf.data.Dataset.list_files(label_files, shuffle=False) ##dont shuffle here
+
+val_size = int(len(files) * VALIDATION_SPLIT)
+train_ds_rgb = list_ds_rgb_images.skip(val_size)
+train_ds_nir = list_ds_nir_images.skip(val_size)
+
+val_ds_rgb = list_ds_rgb_images.take(val_size)
+val_ds_nir = list_ds_nir_images.take(val_size)
+
+
+train_files_rgb = []
+for i in train_ds_rgb:
+    train_files_rgb.append(i.numpy().decode().split(os.sep)[-1])
+
+train_files_nir = []
+for i in train_ds_nir:
+    train_files_nir.append(i.numpy().decode().split(os.sep)[-1])
+
+val_files_rgb = []
+for i in val_ds_rgb:
+    val_files_rgb.append(i.numpy().decode().split(os.sep)[-1])
+
+val_files_nir = []
+for i in val_ds_nir:
+    val_files_nir.append(i.numpy().decode().split(os.sep)[-1])
+
+for i in train_files_rgb:
+    ii = i.split(os.sep)[-1]
+    shutil.copyfile(os.path.normpath(W[0])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'train_data'+os.sep+'train_rgb'+os.sep+ii)
+
+for i in val_files_rgb:
+    ii = i.split(os.sep)[-1]
+    shutil.copyfile(os.path.normpath(W[0])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'val_data'+os.sep+'val_rgb'+os.sep+ii)
+
+for i in train_files_nir:
+    ii = i.split(os.sep)[-1]
+    shutil.copyfile(os.path.normpath(W[1])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'train_data'+os.sep+'train_nir'+os.sep+ii)
+
+for i in val_files_nir:
+    ii = i.split(os.sep)[-1]
+    shutil.copyfile(os.path.normpath(W[1])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'val_data'+os.sep+'val_nir'+os.sep+ii)
+
+
+## labels
+train_ds = list_ds_labels.skip(val_size)
+val_ds = list_ds_labels.take(val_size)
+
+train_label_files = []
+for i in train_ds:
+    train_label_files.append(i.numpy().decode().split(os.sep)[-1])
+
+val_label_files = []
+for i in val_ds:
+    val_label_files.append(i.numpy().decode().split(os.sep)[-1])
+
+
+for i in train_label_files:
+    ii = i.split(os.sep)[-1]
+    shutil.copyfile(os.path.normpath(label_data_path)+os.sep+'images'+os.sep+i,output_data_path+os.sep+'train_data'+os.sep+'train_labels'+os.sep+ii)
+
+for i in val_label_files:
+    ii = i.split(os.sep)[-1]
+    shutil.copyfile(os.path.normpath(label_data_path)+os.sep+'images'+os.sep+i,output_data_path+os.sep+'val_data'+os.sep+'val_labels'+os.sep+ii)
+
+###======================================
+print("Creating non-augmented train subset")
+
 ## make non-aug subset first
 # cycle through pairs of files and labels
-for counter,(f,l) in enumerate(zip(files,label_files)):
+for counter,(f,nf,l) in enumerate(zip(train_files_rgb,train_files_nir,train_label_files)):
 
-    g = imread(f[0])[:,:,1].astype('float')
-    nir = imread(f[1]).astype('float')
+    f = os.path.normpath(W[0])+os.sep+'images'+os.sep+f
+    nf = os.path.normpath(W[1])+os.sep+'images'+os.sep+nf
+    l = os.path.normpath(label_data_path)+os.sep+'images'+os.sep+l
+
+    g = imread(f)[:,:,1].astype('float')
+    nir = imread(nf).astype('float')
     g[g==0]=np.nan
     nir[nir==0]=np.nan
     g = np.ma.filled(g)
@@ -253,7 +348,7 @@ for counter,(f,l) in enumerate(zip(files,label_files)):
         datadict['arr_1'] = np.squeeze(lstack).astype(np.uint8)
         datadict['num_bands'] = 1
         datadict['files'] = [fi.split(os.sep)[-1] for fi in f]
-        segfile = output_data_path+os.sep+ROOT_STRING+'_noaug_nd_data_000000'+str(counter)+'.npz'
+        segfile = output_data_path+os.sep+'train_data'+os.sep+'train_npzs'+os.sep+ROOT_STRING+'_noaug_nd_data_000000'+str(counter)+'.npz'
         np.savez_compressed(segfile, **datadict)
         del datadict, lstack, ndwi
     except:
@@ -261,6 +356,72 @@ for counter,(f,l) in enumerate(zip(files,label_files)):
 
 
 ###================================
+
+### validation
+
+## make non-aug subset first
+# cycle through pairs of files and labels
+for counter,(f,nf,l) in enumerate(zip(val_files_rgb,val_files_nir,val_label_files)):
+
+    f = os.path.normpath(W[0])+os.sep+'images'+os.sep+f
+    nf = os.path.normpath(W[1])+os.sep+'images'+os.sep+nf
+    l = os.path.normpath(label_data_path)+os.sep+'images'+os.sep+l
+
+    g = imread(f)[:,:,1].astype('float')
+    nir = imread(nf).astype('float')
+    g[g==0]=np.nan
+    nir[nir==0]=np.nan
+    g = np.ma.filled(g)
+    nir = np.ma.filled(nir)
+    ndwi = np.divide(g - nir, g + nir )
+    ndwi[np.isnan(ndwi)]=-1
+    ndwi = rescale_array(ndwi,0,255)
+
+    datadict={}
+    try:
+        datadict['arr_0'] = ndwi.astype(np.uint8)
+
+        lab = imread(l) # reac the label
+
+        if 'REMAP_CLASSES' in locals():
+            for k in REMAP_CLASSES.items():
+                lab[lab==int(k[0])] = int(k[1])
+
+        lab[lab>NCLASSES]=NCLASSES
+
+        if len(np.unique(lab))==1:
+            nx,ny = lab.shape
+            if NCLASSES==1:
+                lstack = np.zeros((nx,ny,NCLASSES+1))
+            else:
+                lstack = np.zeros((nx,ny,NCLASSES))
+
+            lstack[:,:,np.unique(lab)[0]]=np.ones((nx,ny))
+        else:
+            nx,ny = lab.shape
+            if NCLASSES==1:
+                lstack = np.zeros((nx,ny,NCLASSES+1))
+                lstack[:,:,:NCLASSES+1] = (np.arange(NCLASSES+1) == 1+lab[...,None]-1).astype(int) #one-hot encode
+            else:
+                lstack = np.zeros((nx,ny,NCLASSES))
+                lstack[:,:,:NCLASSES] = (np.arange(NCLASSES) == 1+lab[...,None]-1).astype(int) #one-hot encode
+
+        if FILTER_VALUE>1:
+
+            for kk in range(lstack.shape[-1]):
+                lab = dilation(lstack[:,:,kk].astype('uint8')>0, disk(FILTER_VALUE))
+                lstack[:,:,kk] = np.round(lab).astype(np.uint8)
+                del lab
+
+        datadict['arr_1'] = np.squeeze(lstack).astype(np.uint8)
+        datadict['num_bands'] = 1
+        datadict['files'] = [fi.split(os.sep)[-1] for fi in f]
+        segfile = output_data_path+os.sep+'val_data'+os.sep+'val_npzs'+os.sep+ROOT_STRING+'_noaug_nd_data_000000'+str(counter)+'.npz'
+        np.savez_compressed(segfile, **datadict)
+        del datadict, lstack, ndwi
+    except:
+        print("Inconsistent inputs associated with label file: ".format(l))
+
 
 
 #-----------------------------------
@@ -305,10 +466,13 @@ def read_seg_dataset_multiclass(example):
 # to deal with non-resized imaegry
 BATCH_SIZE = 1
 
-filenames = tf.io.gfile.glob(output_data_path+os.sep+ROOT_STRING+'_noaug*.npz')
-dataset = tf.data.Dataset.list_files(filenames, shuffle=False)
+train_filenames = tf.io.gfile.glob(output_data_path+os.sep+'train_data'+os.sep+'train_npzs'+os.sep+ROOT_STRING+'_noaug*.npz')
 
-print('{} files made'.format(len(filenames)))
+shuffle(train_filenames)
+
+dataset = tf.data.Dataset.list_files(train_filenames, shuffle=False)
+
+print('{} train files made'.format(len(train_filenames)))
 
 # Set `num_parallel_calls` so multiple images are loaded/processed in parallel.
 dataset = dataset.map(read_seg_dataset_multiclass, num_parallel_calls=AUTO)
@@ -404,42 +568,53 @@ null_mask_datagen = tf.keras.preprocessing.image.ImageDataGenerator(**null_data_
 # important that each band has the same image generator
 image_datagen = tf.keras.preprocessing.image.ImageDataGenerator(**data_gen_args)
 
+#### prep by moving images into subfolders
 
-## put images in subfolders
-for counter,w in enumerate(W):
-    n_im = len(glob(w+os.sep+'*.png')+glob(w+os.sep+'*.jpg'))
-    if n_im>0:
-        try:
-            os.mkdir(w+os.sep+'images')
-        except:
-            pass
-        try:
-            for file in glob(w+os.sep+'*.png'):
-                shutil.move(file,w+os.sep+'images')
-            for file in glob(w+os.sep+'*.jpg'):
-                shutil.move(file,w+os.sep+'images')
-        except:
-            pass
+def move_image_folders(W):
+    ## put images in subfolders
+    for counter,w in enumerate(W):
+        n_im = len(glob(w+os.sep+'*.png')+glob(w+os.sep+'*.jpg'))
+        if n_im>0:
+            try:
+                os.mkdir(w+os.sep+'images')
+            except:
+                pass
+            try:
+                for file in glob(w+os.sep+'*.png'):
+                    shutil.move(file,w+os.sep+'images')
+                for file in glob(w+os.sep+'*.jpg'):
+                    shutil.move(file,w+os.sep+'images')
+            except:
+                pass
 
-    n_im = len(glob(w+os.sep+'images'+os.sep+'*.*'))
+        n_im = len(glob(w+os.sep+'images'+os.sep+'*.*'))
+
+W = []
+W.append(output_data_path+os.sep+'train_data'+os.sep+'train_rgb')
+W.append(output_data_path+os.sep+'train_data'+os.sep+'train_nir')
+
+move_image_folders(W)
+
+W = []
+W.append(output_data_path+os.sep+'val_data'+os.sep+'val_rgb')
+W.append(output_data_path+os.sep+'val_data'+os.sep+'val_nir')
+
+move_image_folders(W)
+
+W = []
+W.append(output_data_path+os.sep+'train_data'+os.sep+'train_labels')
+W.append(output_data_path+os.sep+'val_data'+os.sep+'val_labels')
+
+move_image_folders(W)
+
+##################
 
 
-## put label images in subfolders
-n_im = len(glob(label_data_path+os.sep+'*.png')+glob(label_data_path+os.sep+'*.jpg'))
-if n_im>0:
-    try:
-        os.mkdir(label_data_path+os.sep+'images')
-    except:
-        pass
-
-try:
-    for file in glob(label_data_path+os.sep+'*.jpg'):
-        shutil.move(file,label_data_path+os.sep+'images')
-    for file in glob(label_data_path+os.sep+'*.png'):
-        shutil.move(file,label_data_path+os.sep+'images')
-except:
-    pass
-n_im = len(glob(label_data_path+os.sep+'images'+os.sep+'*.*'))
+####### train subset
+n_im = len(glob(output_data_path+os.sep+'train_data'+os.sep+'train_labels'+os.sep+'images'+os.sep+'*.*'))
+W = []
+W.append(output_data_path+os.sep+'train_data'+os.sep+'train_rgb')
+W.append(output_data_path+os.sep+'train_data'+os.sep+'train_nir')
 
 
 #### make training generators directly, and in advance
@@ -459,16 +634,16 @@ for counter,w in enumerate(W):
             batch_size=int(n_im/AUG_LOOPS),
             class_mode=None, seed=SEED, shuffle=False)
 
-    print("folder: {}".format(label_data_path.split(os.sep)[-1]))
+    print("folder: {}".format(output_data_path+os.sep+'train_data'+os.sep+'train_labels'.split(os.sep)[-1]))
     #the seed must be the same as for the training set to get the same images
     mask_generator = mask_datagen.flow_from_directory(
-            label_data_path,
+            output_data_path+os.sep+'train_data'+os.sep+'train_labels',
             target_size=(NX, NY),
             batch_size=int(n_im/AUG_LOOPS),
             class_mode=None, seed=SEED, shuffle=False, color_mode="grayscale", interpolation="nearest")
 
     null_mask_generator = null_mask_datagen.flow_from_directory(
-            label_data_path,
+            output_data_path+os.sep+'train_data'+os.sep+'train_labels',
             target_size=(NX, NY),
             batch_size=int(n_im/AUG_LOOPS),
             class_mode=None, seed=SEED, shuffle=False, color_mode="grayscale", interpolation="nearest")
@@ -588,11 +763,10 @@ for copy in tqdm(range(AUG_COPIES)):
             except:
                 datadict['files'] = [files]
 
-            np.savez_compressed(output_data_path+os.sep+ROOT_STRING+'_aug_nd_data_000000'+str(i),
+            np.savez_compressed(output_data_path+os.sep+'train_data'+os.sep+'train_npzs'+os.sep+ROOT_STRING+'_aug_nd_data_000000'+str(i),
                                 **datadict)
 
             del lstack, im
-
 
             i += 1
 
@@ -601,7 +775,9 @@ for copy in tqdm(range(AUG_COPIES)):
 ## READ, VERIFY and PLOT AUGMENTED FILES
 ##========================================================
 
-filenames = tf.io.gfile.glob(output_data_path+os.sep+ROOT_STRING+'_aug*.npz')
+filenames = tf.io.gfile.glob(output_data_path+os.sep+'train_data'+os.sep+'train_npzs'+os.sep+ROOT_STRING+'_aug*.npz')
+
+shuffle(filenames)
 dataset = tf.data.Dataset.list_files(filenames, shuffle=False)
 
 print('{} files made'.format(len(filenames)))
