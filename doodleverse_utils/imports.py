@@ -228,8 +228,11 @@ def do_resize_label(lfile, TARGET_SIZE):
     fdir = os.path.dirname(lfile)
     fdirout = fdir.replace(wend,'resized_'+wend)
 
+    f_out = fdirout+os.sep+lfile.split(os.sep)[-1].replace('.jpg','.png')
+    f_out = f_out.replace(f_out.split(os.sep)[-1],'images'+os.sep+f_out.split(os.sep)[-1])
+
     # save result
-    imsave(fdirout+os.sep+lfile.split(os.sep)[-1].replace('.jpg','.png'), result.astype('uint8'), check_contrast=False, compression=0)
+    imsave(f_out, result.astype('uint8'), check_contrast=False, compression=0)
 
 
 #-----------------------------------
@@ -250,6 +253,9 @@ def do_resize_image(f, TARGET_SIZE):
     fdir = os.path.dirname(f)
     fdirout = fdir.replace(wend,'resized_'+wend)
 
+    f_out = fdirout+os.sep+f.split(os.sep)[-1].replace('.jpg','.png')
+    f_out = f_out.replace(f_out.split(os.sep)[-1],'images'+os.sep+f_out.split(os.sep)[-1])
+
     # save result
-    imsave(fdirout+os.sep+f.split(os.sep)[-1].replace('.jpg','.png'), result.astype('uint8'), check_contrast=False, compression=0)
+    imsave(f_out, result.astype('uint8'), check_contrast=False, compression=0)
 
