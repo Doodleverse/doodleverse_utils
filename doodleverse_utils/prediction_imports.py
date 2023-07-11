@@ -127,12 +127,26 @@ def compile_models(M, MODEL):
         Mc.append(m)
     return Mc
 
+
 # #-----------------------------------
 def get_image(f,N_DATA_BANDS,TARGET_SIZE,MODEL):
     if N_DATA_BANDS <= 3:
         image, w, h, bigimage = seg_file2tensor_3band(f, TARGET_SIZE)
     else:
         image, w, h, bigimage = seg_file2tensor_ND(f, TARGET_SIZE)
+
+    try: ##>3 bands
+        if N_DATA_BANDS<=3:
+            if image.shape[-1]>3:
+                image = image[:,:,:3]
+
+            if bigimage.shape[-1]>3:
+                bigimage = bigimage[:,:,:3]
+    except:
+        pass
+
+    # print(f)
+    # print(image.shape)
 
     image = standardize(image.numpy()).squeeze()
 
@@ -143,12 +157,13 @@ def get_image(f,N_DATA_BANDS,TARGET_SIZE,MODEL):
 
     return image, w, h, bigimage 
 
+
 # #-----------------------------------
-def est_label_multiclass(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE):
+def est_label_multiclass(image,M,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE):
 
     est_label = np.zeros((TARGET_SIZE[0], TARGET_SIZE[1], NCLASSES))
     
-    for counter, model in enumerate(Mc):
+    for counter, model in enumerate(M):
         # heatmap = make_gradcam_heatmap(tf.expand_dims(image, 0) , model)
         try:
             if MODEL=='segformer':
@@ -157,8 +172,11 @@ def est_label_multiclass(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE):
                 est_label = tf.squeeze(model(tf.expand_dims(image, 0)))
         except:
             if MODEL=='segformer':
-                est_label = model(tf.expand_dims(image[:,:,0], 0)).logits
+                #### FIX :3
+                # est_label = model(tf.expand_dims(image[:,:,0], 0)).logits
+                est_label = model(tf.expand_dims(image[:,:,:3], 0)).logits
             else:
+                #### FIX :3                
                 est_label = tf.squeeze(model(tf.expand_dims(image[:,:,0], 0)))
 
         if TESTTIMEAUG == True:
@@ -197,19 +215,18 @@ def est_label_multiclass(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE):
             est_label = est_label + est_label2 + est_label3 + est_label4
 
         K.clear_session()
-        gc.collect()
 
     # heatmap = resize(heatmap,(w,h), preserve_range=True, clip=True)
     return est_label, counter
 
 
 # #-----------------------------------
-def est_label_binary(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE,w,h):
+def est_label_binary(image,M,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE,w,h):
 
     E0 = []
     E1 = []
 
-    for counter, model in enumerate(Mc):#M):
+    for counter, model in enumerate(M):
         # heatmap = make_gradcam_heatmap(tf.expand_dims(image, 0) , model)
         try:
             if MODEL=='segformer':
@@ -220,8 +237,12 @@ def est_label_binary(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE,w,h):
 
         except:
             if MODEL=='segformer':
-                est_label = model.predict(tf.expand_dims(image[:,:,0], 0), batch_size=1).logits
+                #### FIX :3
+                # est_label = model.predict(tf.expand_dims(image[:,:,0], 0), batch_size=1).logits
+                est_label = model.predict(tf.expand_dims(image[:,:,:3], 0), batch_size=1).logits
+
             else:
+                #### FIX :3
                 est_label = tf.squeeze(model.predict(tf.expand_dims(image[:,:,0], 0), batch_size=1))
 
         if TESTTIMEAUG == True:
@@ -278,9 +299,9 @@ def est_label_binary(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE,w,h):
         # del est_label
     # heatmap = resize(heatmap,(w,h), preserve_range=True, clip=True)
     K.clear_session()
-    gc.collect()
 
     return E0, E1 
+
 
 # =========================================================
 def do_seg(
@@ -296,12 +317,14 @@ def do_seg(
     if profile=='full':
         WRITE_MODELMETADATA = True
 
-    Mc = compile_models(M, MODEL)
+    # Mc = compile_models(M, MODEL)
 
     if f.endswith("jpg"):
         segfile = f.replace(".jpg", "_predseg.png")
     elif f.endswith("png"):
         segfile = f.replace(".png", "_predseg.png")
+    elif f.endswith("tif"):
+        segfile = f.replace(".tif", "_predseg.png")        
     elif f.endswith("npz"):  # in f:
         segfile = f.replace(".npz", "_predseg.png")
 
@@ -327,14 +350,22 @@ def do_seg(
 
         image, w, h, bigimage = get_image(f,N_DATA_BANDS,TARGET_SIZE,MODEL)
 
-        E0, E1 = est_label_binary(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE,w,h)
+        if np.std(image)==0:
 
-        e0 = np.average(np.dstack(E0), axis=-1)  
+            print("Image {} is empty".format(f))
+            e0 = np.zeros((w,h))
+            e1 = np.zeros((w,h))
 
-        # del E0
+        else:
 
-        e1 = np.average(np.dstack(E1), axis=-1) 
-        # del E1
+            E0, E1 = est_label_binary(image,M,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE,w,h)
+
+            e0 = np.average(np.dstack(E0), axis=-1)  
+
+            # del E0
+
+            e1 = np.average(np.dstack(E1), axis=-1) 
+            # del E1
 
         est_label = (e1 + (1 - e0)) / 2
 
@@ -363,18 +394,25 @@ def do_seg(
 
         image, w, h, bigimage = get_image(f,N_DATA_BANDS,TARGET_SIZE,MODEL)
 
-        est_label, counter = est_label_multiclass(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE)
+        if np.std(image)==0:
 
-        est_label /= counter + 1
-        # est_label cannot be float16 so convert to float32
-        est_label = est_label.numpy().astype('float32')
+            print("Image {} is empty".format(f))
+            est_label = np.zeros((w,h))
 
-        if MODEL=='segformer':
-            est_label = resize(est_label, (1, NCLASSES, TARGET_SIZE[0],TARGET_SIZE[1]), preserve_range=True, clip=True).squeeze()
-            est_label = np.transpose(est_label, (1,2,0))
-            est_label = resize(est_label, (w, h))
         else:
-            est_label = resize(est_label, (w, h))
+                
+            est_label, counter = est_label_multiclass(image,M,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE)
+
+            est_label /= counter + 1
+            # est_label cannot be float16 so convert to float32
+            est_label = est_label.numpy().astype('float32')
+
+            if MODEL=='segformer':
+                est_label = resize(est_label, (1, NCLASSES, TARGET_SIZE[0],TARGET_SIZE[1]), preserve_range=True, clip=True).squeeze()
+                est_label = np.transpose(est_label, (1,2,0))
+                est_label = resize(est_label, (w, h))
+            else:
+                est_label = resize(est_label, (w, h))
 
 
         if WRITE_MODELMETADATA:
@@ -385,7 +423,10 @@ def do_seg(
         if WRITE_MODELMETADATA:
             metadatadict["av_softmax_scores"] = softmax_scores
 
-        est_label = np.argmax(softmax_scores, -1)
+        if np.std(image)>0:
+            est_label = np.argmax(softmax_scores, -1)
+        else:
+            est_label = est_label.astype('uint8')
 
 
     class_label_colormap = [
@@ -507,7 +548,234 @@ def do_seg(
             plt.savefig(tmpfile, dpi=200, bbox_inches="tight")
             plt.close("all")
 
-    gc.collect()
+
+
+# # =========================================================
+# def do_seg(
+#     f, M, metadatadict, MODEL, sample_direc, 
+#     NCLASSES, N_DATA_BANDS, TARGET_SIZE, TESTTIMEAUG, WRITE_MODELMETADATA,
+#     OTSU_THRESHOLD,
+#     out_dir_name='out',
+#     profile='minimal'
+# ):
+    
+#     if profile=='meta':
+#         WRITE_MODELMETADATA = True
+#     if profile=='full':
+#         WRITE_MODELMETADATA = True
+
+#     Mc = compile_models(M, MODEL)
+
+#     if f.endswith("jpg"):
+#         segfile = f.replace(".jpg", "_predseg.png")
+#     elif f.endswith("png"):
+#         segfile = f.replace(".png", "_predseg.png")
+#     elif f.endswith("npz"):  # in f:
+#         segfile = f.replace(".npz", "_predseg.png")
+
+#     if WRITE_MODELMETADATA:
+#         metadatadict["input_file"] = f
+        
+#     # directory to hold the outputs of the models is named 'out' by default
+#     # create a directory to hold the outputs of the models, by default name it 'out' or the model name if it exists in metadatadict
+#     out_dir_path = os.path.normpath(sample_direc + os.sep + out_dir_name)
+#     if not os.path.exists(out_dir_path):
+#         os.mkdir(out_dir_path)
+
+#     segfile = os.path.normpath(segfile)
+#     segfile = segfile.replace(
+#         os.path.normpath(sample_direc), os.path.normpath(sample_direc + os.sep + out_dir_name)
+#     )
+
+#     if WRITE_MODELMETADATA:
+#         metadatadict["nclasses"] = NCLASSES
+#         metadatadict["n_data_bands"] = N_DATA_BANDS
+
+#     if NCLASSES == 2:
+
+#         image, w, h, bigimage = get_image(f,N_DATA_BANDS,TARGET_SIZE,MODEL)
+
+#         E0, E1 = est_label_binary(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE,w,h)
+
+#         e0 = np.average(np.dstack(E0), axis=-1)  
+
+#         # del E0
+
+#         e1 = np.average(np.dstack(E1), axis=-1) 
+#         # del E1
+
+#         est_label = (e1 + (1 - e0)) / 2
+
+#         if WRITE_MODELMETADATA:
+#             metadatadict["av_prob_stack"] = est_label
+
+#         softmax_scores = np.dstack((e0,e1))
+#         # del e0, e1
+
+#         if WRITE_MODELMETADATA:
+#             metadatadict["av_softmax_scores"] = softmax_scores
+
+#         if OTSU_THRESHOLD:
+#             thres = threshold_otsu(est_label)
+#             # print("Class threshold: %f" % (thres))
+#             est_label = (est_label > thres).astype("uint8")
+#             if WRITE_MODELMETADATA:
+#                 metadatadict["otsu_threshold"] = thres
+
+#         else:
+#             est_label = (est_label > 0.5).astype("uint8")
+#             if WRITE_MODELMETADATA:
+#                 metadatadict["otsu_threshold"] = 0.5            
+
+#     else:  ###NCLASSES>2
+
+#         image, w, h, bigimage = get_image(f,N_DATA_BANDS,TARGET_SIZE,MODEL)
+
+#         est_label, counter = est_label_multiclass(image,Mc,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE)
+
+#         est_label /= counter + 1
+#         # est_label cannot be float16 so convert to float32
+#         est_label = est_label.numpy().astype('float32')
+
+#         if MODEL=='segformer':
+#             est_label = resize(est_label, (1, NCLASSES, TARGET_SIZE[0],TARGET_SIZE[1]), preserve_range=True, clip=True).squeeze()
+#             est_label = np.transpose(est_label, (1,2,0))
+#             est_label = resize(est_label, (w, h))
+#         else:
+#             est_label = resize(est_label, (w, h))
+
+
+#         if WRITE_MODELMETADATA:
+#             metadatadict["av_prob_stack"] = est_label
+
+#         softmax_scores = est_label.copy() #np.dstack((e0,e1))
+
+#         if WRITE_MODELMETADATA:
+#             metadatadict["av_softmax_scores"] = softmax_scores
+
+#         est_label = np.argmax(softmax_scores, -1)
+
+
+#     class_label_colormap = [
+#         "#3366CC",
+#         "#DC3912",
+#         "#FF9900",
+#         "#109618",
+#         "#990099",
+#         "#0099C6",
+#         "#DD4477",
+#         "#66AA00",
+#         "#B82E2E",
+#         "#316395",
+#         "#ffe4e1",
+#         "#ff7373",
+#         "#666666",
+#         "#c0c0c0",
+#         "#66cdaa",
+#         "#afeeee",
+#         "#0e2f44",
+#         "#420420",
+#         "#794044",
+#         "#3399ff",
+#     ]
+
+#     class_label_colormap = class_label_colormap[:NCLASSES]
+
+#     if WRITE_MODELMETADATA:
+#         metadatadict["color_segmentation_output"] = segfile
+
+#     try:
+#         color_label = label_to_colors(
+#             est_label,
+#             bigimage.numpy()[:, :, 0] == 0,
+#             alpha=128,
+#             colormap=class_label_colormap,
+#             color_class_offset=0,
+#             do_alpha=False,
+#         )
+#     except:
+#         try:
+#             color_label = label_to_colors(
+#                 est_label,
+#                 bigimage[:, :, 0] == 0,
+#                 alpha=128,
+#                 colormap=class_label_colormap,
+#                 color_class_offset=0,
+#                 do_alpha=False,
+#             )
+#         except:
+#             color_label = label_to_colors(
+#                 est_label,
+#                 bigimage == 0,
+#                 alpha=128,
+#                 colormap=class_label_colormap,
+#                 color_class_offset=0,
+#                 do_alpha=False,
+#             )        
+
+#     imsave(segfile, (color_label).astype(np.uint8), check_contrast=False)
+    
+#     if WRITE_MODELMETADATA:
+#         metadatadict["color_segmentation_output"] = segfile
+
+#     segfile = segfile.replace("_predseg.png", "_res.npz")
+
+#     if WRITE_MODELMETADATA:
+#         metadatadict["grey_label"] = est_label
+#         np.savez_compressed(segfile, **metadatadict)
+
+#     if profile == 'full': #(profile !='minimal') and (profile !='meta'):
+#         #### plot overlay
+#         segfile = segfile.replace("_res.npz", "_overlay.png")
+
+#         if N_DATA_BANDS <= 3:
+#             plt.imshow(bigimage, cmap='gray')
+#         else:
+#             plt.imshow(bigimage[:, :, :3])
+
+#         plt.imshow(color_label, alpha=0.5)
+#         plt.axis("off")
+#         plt.savefig(segfile, dpi=200, bbox_inches="tight")
+#         plt.close("all")
+
+#         #### image - overlay side by side
+#         segfile = segfile.replace("_res.npz", "_image_overlay.png")
+
+#         plt.subplot(121)
+#         if N_DATA_BANDS <= 3:
+#             plt.imshow(bigimage, cmap='gray')
+#         else:
+#             plt.imshow(bigimage[:, :, :3])
+#         plt.axis("off")
+
+#         plt.subplot(122)
+#         if N_DATA_BANDS <= 3:
+#             plt.imshow(bigimage, cmap='gray')
+#         else:
+#             plt.imshow(bigimage[:, :, :3])
+#         plt.imshow(color_label, alpha=0.5)
+#         plt.axis("off")
+#         plt.savefig(segfile, dpi=200, bbox_inches="tight")
+#         plt.close("all")
+
+#     if profile == 'full': #(profile !='minimal') and (profile !='meta'):
+
+#         #### plot overlay of per-class probabilities
+#         for kclass in range(softmax_scores.shape[-1]):
+#             tmpfile = segfile.replace("_overlay.png", "_overlay_"+str(kclass)+"prob.png")
+
+#             if N_DATA_BANDS <= 3:
+#                 plt.imshow(bigimage, cmap='gray')
+#             else:
+#                 plt.imshow(bigimage[:, :, :3])
+
+#             plt.imshow(softmax_scores[:,:,kclass], alpha=0.5, vmax=1, vmin=0)
+#             plt.axis("off")
+#             plt.colorbar()
+#             plt.savefig(tmpfile, dpi=200, bbox_inches="tight")
+#             plt.close("all")
+
+#     gc.collect()
 
 
 
