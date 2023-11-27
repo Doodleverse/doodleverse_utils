@@ -30,20 +30,21 @@ import numpy as np
 import tensorflow as tf
 
 #=================================================
-def Precision(confusionMatrix):  
-    precision = np.diag(confusionMatrix) / confusionMatrix.sum(axis = 1)
+def Precision(confusionMatrix): 
+    epsilon = 1e-6
+    recall = np.diag(confusionMatrix) / (confusionMatrix.sum(axis = 0) + epsilon)
     return precision  
 
 #=================================================
 def Recall(confusionMatrix):
     epsilon = 1e-6
-    recall = np.diag(confusionMatrix) / (confusionMatrix.sum(axis = 0) + epsilon)
+    recall = np.diag(confusionMatrix) / (confusionMatrix.sum(axis = 1) + epsilon)
     return recall
 
 #=================================================
 def F1Score(confusionMatrix):
-    precision = np.diag(confusionMatrix) / confusionMatrix.sum(axis = 1)
-    recall = np.diag(confusionMatrix) / confusionMatrix.sum(axis = 0)
+    precision = np.diag(confusionMatrix) / confusionMatrix.sum(axis = 0)
+    recall = np.diag(confusionMatrix) / confusionMatrix.sum(axis = 1)
     f1score = 2 * precision * recall / (precision + recall)
     return f1score
 
