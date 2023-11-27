@@ -32,7 +32,7 @@ import tensorflow as tf
 #=================================================
 def Precision(confusionMatrix): 
     epsilon = 1e-6
-    recall = np.diag(confusionMatrix) / (confusionMatrix.sum(axis = 0) + epsilon)
+    precision = np.diag(confusionMatrix) / (confusionMatrix.sum(axis = 0) + epsilon)
     return precision  
 
 #=================================================
