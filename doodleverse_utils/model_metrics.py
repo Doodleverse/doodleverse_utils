@@ -78,7 +78,7 @@ def ConfusionMatrix(numClass, imgPredict, Label):
     label = numClass * Label[mask] + imgPredict[mask]  
     count = np.bincount(label, minlength = numClass**2)  
     confusionMatrix = count.reshape(numClass, numClass)  
-    return confusionMatrix
+    return confusionMatrix.T
     
 #=================================================
 def OverallAccuracy(confusionMatrix):  
