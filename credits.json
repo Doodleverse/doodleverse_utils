@@ -1,0 +1,44 @@
+{
+    "title": "doodleverse-utils",
+    "description": "A set of common Doodleverse tools and utilities.",
+    "creators": [
+      {
+        "name": "Buscombe, Daniel",
+        "orcid": "0000-0001-6217-5584",
+        "affiliation": "Contracted to U.S. Geological Survey Pacific Coastal and Marine Science Center, Santa Cruz, California, United States"
+      }
+    ],
+    "contributors": [
+      {
+        "name": "Goldstein, Evan B.",
+        "orcid": "0000-0001-9358-1016",
+        "affiliation": "Sediment-Science"
+      },
+      {
+        "name": "Fitzpatrick, Sharon",
+        "orcid": "0000-0001-6513-9132",
+        "affiliation": "Contracted to U.S. Geological Survey Pacific Coastal and Marine Science Center, Santa Cruz, California, United States"
+      },
+      {
+        "name": "Bodine, Cameron",
+        "orcid": "0000-0002-1623-3920",
+        "affiliation": "University of Delaware"
+      }
+    ],
+    "license": {
+      "id": "GPL-3.0-only"
+    },
+    "keywords": [
+      "Image segmentation",
+      "The Doodleverse"
+    ],
+    "access_right": "open",
+    "communities": [
+      {
+        "identifier": "Doodleverse"
+      }
+    ],
+    "upload_type": "software",
+    "language": "eng"
+  }
+  
