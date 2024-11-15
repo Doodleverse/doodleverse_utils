@@ -157,9 +157,11 @@ def get_image(f,N_DATA_BANDS,TARGET_SIZE,MODEL):
 # #-----------------------------------
 def est_label_multiclass(image,M,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE):
 
+    E = []
     est_label = np.zeros((TARGET_SIZE[0], TARGET_SIZE[1], NCLASSES))
     
     for counter, model in enumerate(M):
+        print(counter)
         # heatmap = make_gradcam_heatmap(tf.expand_dims(image, 0) , model)
         try:
             if MODEL=='segformer':
@@ -171,6 +173,8 @@ def est_label_multiclass(image,M,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE):
                 est_label = model(tf.expand_dims(image[:,:,0], 0)).logits
             else:
                 est_label = tf.squeeze(model(tf.expand_dims(image[:,:,0], 0)))
+
+        E.append(est_label)
 
         if TESTTIMEAUG == True:
             # return the flipped prediction
@@ -207,7 +211,17 @@ def est_label_multiclass(image,M,MODEL,TESTTIMEAUG,NCLASSES,TARGET_SIZE):
             # soft voting - sum the softmax scores to return the new TTA estimated softmax scores
             est_label = est_label + est_label2 + est_label3 + est_label4
 
+            E.append(est_label)
+
         K.clear_session()
+
+    E = np.vstack(E)
+    print(E.shape)
+    est_label = np.mean(E, axis=0)
+    print(est_label.shape)
+
+    # est_label = est_label.transpose(1,2,0)
+    # print(est_label.shape)
 
     # heatmap = resize(heatmap,(w,h), preserve_range=True, clip=True)
     return est_label, counter

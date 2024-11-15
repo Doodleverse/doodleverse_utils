@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2022-2023, Marda Science LLC
+# Copyright (c) 2022-2024, Marda Science LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,10 @@
 # SOFTWARE.
 
 # utility to merge multiple coincident jpeg images into nd numpy arrays
-import os, json, shutil
 
 from .imports import *
 
+import os, json, shutil
 from natsort import natsorted
 import numpy as np
 from tkinter import filedialog
@@ -82,15 +82,17 @@ label_data_path = root.filename
 print(label_data_path)
 root.withdraw()
 
+W=[]
+W.append(label_data_path)
+
+
 root = Tk()
 root.filename =  filedialog.askdirectory(initialdir = label_data_path,title = "Select directory of RGB IMAGE files")
 data_path = root.filename
 print(data_path)
 root.withdraw()
-
-
-W=[]
 W.append(data_path)
+
 
 root = Tk()
 root.filename =  filedialog.askdirectory(initialdir = label_data_path,title = "Select directory of NIR IMAGE files")
@@ -131,6 +133,7 @@ for w in W:
 
     try:
         os.mkdir(newdirec)
+        os.mkdir(newdirec+os.sep+'images')
     except:
         pass
 
@@ -139,31 +142,31 @@ if USEMASK:
 else:
     newdireclabels = label_data_path.replace('label','resized_label')
 
-# if directories already exist, skip them
-if os.path.isdir(newdirec):#newdireclabels):
-    print("{} already exists: skipping the image resizing step".format(newdirec))#newdireclabels))
-else:
+# # if directories already exist, skip them
+# if os.path.isdir(newdirec):#newdireclabels):
+#     print("{} already exists: skipping the image resizing step".format(newdirec))#newdireclabels))
+# else:
 
-    try:
-        os.mkdir(newdireclabels)
-    except:
-        pass
+try:
+    os.mkdir(newdireclabels)
+except:
+    pass
 
-    if len(W)==1:
-        try:
-            w = Parallel(n_jobs=-2, verbose=0, max_nbytes=None)(delayed(do_resize_image)(os.path.normpath(f), TARGET_SIZE) for f in files)
-        except:
-            w = Parallel(n_jobs=-2, verbose=0, max_nbytes=None)(delayed(do_resize_image)(os.path.normpath(f), TARGET_SIZE) for f in files.squeeze())
+# if len(W)==1:
+#     try:
+#         w = Parallel(n_jobs=-2, verbose=0, max_nbytes=None)(delayed(do_resize_image)(os.path.normpath(f), TARGET_SIZE) for f in files)
+#     except:
+#         w = Parallel(n_jobs=-2, verbose=0, max_nbytes=None)(delayed(do_resize_image)(os.path.normpath(f), TARGET_SIZE) for f in files.squeeze())
 
-        w = Parallel(n_jobs=-2, verbose=0, max_nbytes=None)(delayed(do_resize_label)(os.path.normpath(lfile), TARGET_SIZE) for lfile in label_files)
+#     w = Parallel(n_jobs=-2, verbose=0, max_nbytes=None)(delayed(do_resize_label)(os.path.normpath(lfile), TARGET_SIZE) for lfile in label_files)
 
-    else:
-        ## cycle through, merge and padd/resize if need to
-        for file,lfile in zip(files, label_files):
+# else:
+## cycle through, merge and padd/resize if need to
+for file,lfile in zip(files, label_files):
 
-            for f in file:
-                do_resize_image(f, TARGET_SIZE)
-            do_resize_label(lfile, TARGET_SIZE)
+    for f in file:
+        do_resize_image(f, TARGET_SIZE)
+    do_resize_label(lfile, TARGET_SIZE)
 
 
 ## write padded labels to file
@@ -218,8 +221,9 @@ except:
     pass
 
 ###======================================
-rgb_files = [f[0] for f in files]
-nir_files = [f[1] for f in files]
+label_files = [f[0] for f in files]
+rgb_files = [f[1] for f in files]
+nir_files = [f[2] for f in files]
 
 list_ds_rgb_images = tf.data.Dataset.list_files(rgb_files, shuffle=False) ##dont shuffle here
 list_ds_nir_images = tf.data.Dataset.list_files(nir_files, shuffle=False) ##dont shuffle here
@@ -252,19 +256,19 @@ for i in val_ds_nir:
 
 for i in train_files_rgb:
     ii = i.split(os.sep)[-1]
-    shutil.copyfile(os.path.normpath(W[0])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'train_data'+os.sep+'train_rgb'+os.sep+ii)
+    shutil.copyfile(os.path.normpath(W[1])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'train_data'+os.sep+'train_rgb'+os.sep+ii)
 
 for i in val_files_rgb:
     ii = i.split(os.sep)[-1]
-    shutil.copyfile(os.path.normpath(W[0])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'val_data'+os.sep+'val_rgb'+os.sep+ii)
+    shutil.copyfile(os.path.normpath(W[1])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'val_data'+os.sep+'val_rgb'+os.sep+ii)
 
 for i in train_files_nir:
     ii = i.split(os.sep)[-1]
-    shutil.copyfile(os.path.normpath(W[1])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'train_data'+os.sep+'train_nir'+os.sep+ii)
+    shutil.copyfile(os.path.normpath(W[2])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'train_data'+os.sep+'train_nir'+os.sep+ii)
 
 for i in val_files_nir:
     ii = i.split(os.sep)[-1]
-    shutil.copyfile(os.path.normpath(W[1])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'val_data'+os.sep+'val_nir'+os.sep+ii)
+    shutil.copyfile(os.path.normpath(W[2])+os.sep+'images'+os.sep+i,output_data_path+os.sep+'val_data'+os.sep+'val_nir'+os.sep+ii)
 
 
 ## labels
@@ -295,8 +299,8 @@ print("Creating non-augmented train subset")
 # cycle through pairs of files and labels
 for counter,(f,nf,l) in enumerate(zip(train_files_rgb,train_files_nir,train_label_files)):
 
-    f = os.path.normpath(W[0])+os.sep+'images'+os.sep+f
-    nf = os.path.normpath(W[1])+os.sep+'images'+os.sep+nf
+    f = os.path.normpath(W[1])+os.sep+'images'+os.sep+f
+    nf = os.path.normpath(W[2])+os.sep+'images'+os.sep+nf
     l = os.path.normpath(label_data_path)+os.sep+'images'+os.sep+l
 
     g = imread(f)[:,:,1].astype('float')
@@ -363,8 +367,8 @@ for counter,(f,nf,l) in enumerate(zip(train_files_rgb,train_files_nir,train_labe
 # cycle through pairs of files and labels
 for counter,(f,nf,l) in enumerate(zip(val_files_rgb,val_files_nir,val_label_files)):
 
-    f = os.path.normpath(W[0])+os.sep+'images'+os.sep+f
-    nf = os.path.normpath(W[1])+os.sep+'images'+os.sep+nf
+    f = os.path.normpath(W[1])+os.sep+'images'+os.sep+f
+    nf = os.path.normpath(W[2])+os.sep+'images'+os.sep+nf
     l = os.path.normpath(label_data_path)+os.sep+'images'+os.sep+l
 
     g = imread(f)[:,:,1].astype('float')
@@ -798,7 +802,7 @@ print('.....................................')
 print('Printing examples to file ...')
 
 counter=0
-for imgs,lbls,files in dataset.take(20):
+for imgs,lbls,files in dataset.take(100):
 
   for count,(im,lab, file) in enumerate(zip(imgs, lbls, files)):
 
@@ -808,14 +812,16 @@ for imgs,lbls,files in dataset.take(20):
 
      lab = np.argmax(lab.numpy().squeeze(),-1)
 
+     print(np.unique(lab))
+
      color_label = label_to_colors(np.squeeze(lab), tf.cast(im[:,:,0]==0,tf.uint8),
                                     alpha=128, colormap=class_label_colormap,
                                      color_class_offset=0, do_alpha=False)
 
      if NCLASSES==1:
-         plt.imshow(color_label, alpha=0.5)#, vmin=0, vmax=NCLASSES)
+         plt.imshow(color_label, alpha=0.5, vmin=0, vmax=NCLASSES)
      else:
-         plt.imshow(color_label,  alpha=0.5)#, vmin=0, vmax=NCLASSES)
+         plt.imshow(color_label,  alpha=0.5, vmin=0, vmax=NCLASSES)
 
      try:
          file = file.numpy()
