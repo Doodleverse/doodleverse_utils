@@ -62,13 +62,23 @@ def segformer(
     label2id = {label: id for id, label in id2label.items()}
     model_checkpoint = "nvidia/mit-b0"
 
-    model = TFSegformerForSemanticSegmentation.from_pretrained(
-        model_checkpoint,
-        num_labels=num_classes,
-        id2label=id2label,
-        label2id=label2id,
-        ignore_mismatched_sizes=True,
-    )
+    try:
+        model = TFSegformerForSemanticSegmentation.from_pretrained(
+            model_checkpoint,
+            num_labels=num_classes,
+            id2label=id2label,
+            label2id=label2id,
+            ignore_mismatched_sizes=True,
+        )
+
+    except:
+        model = SegformerForSemanticSegmentation.from_pretrained(
+                model_checkpoint,
+                num_labels=num_classes,
+                id2label=id2label,
+                label2id=label2id,
+                ignore_mismatched_sizes=True,
+            )    
     return model
 
 
@@ -1113,5 +1123,6 @@ def mean_dice_np(y_true, y_pred, nclasses):
     for index in range(nclasses):
         dice += basic_dice_coef(y_true[:,:,:,index], y_pred[:,:,:,index])
     return (dice/nclasses).numpy()
+
 
 
