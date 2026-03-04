@@ -33,6 +33,8 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 try:
     from transformers import TFSegformerForSemanticSegmentation
 except:
+    from transformers import SegformerForSemanticSegmentation
+finally:
     print("Transformers library did not load")
 
 SEED = 42
@@ -1111,4 +1113,5 @@ def mean_dice_np(y_true, y_pred, nclasses):
     for index in range(nclasses):
         dice += basic_dice_coef(y_true[:,:,:,index], y_pred[:,:,:,index])
     return (dice/nclasses).numpy()
+
 
