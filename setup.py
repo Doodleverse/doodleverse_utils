@@ -2,7 +2,6 @@ from setuptools import setup, find_packages
 from pathlib import Path
 
 DESCRIPTION = 'Imports into the Doodleverse.'
-LONG_DESCRIPTION = Path('README.md').read_text()
 
 exec(open('doodleverse_utils/version.py').read())
 
@@ -12,7 +11,6 @@ setup(
     author="Daniel Buscombe",
     author_email="dbuscombe@gmail.com",
     description=DESCRIPTION,
-    long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
     packages=find_packages(),
     classifiers=[
