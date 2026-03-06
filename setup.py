@@ -1,25 +1,38 @@
-import setuptools, versioneer
+from setuptools import setup, find_packages
+from pathlib import Path
 
-with open("README.rst", "r") as fh:
-    long_description = fh.read()
-with open("requirements.txt", "r") as fh:
-    requirements = [line.strip() for line in fh]
+DESCRIPTION = 'Imports into the Doodleverse.'
+LONG_DESCRIPTION = Path('README.md').read_text()
 
-setuptools.setup(
-    name="doodleverse-utils",
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+exec(open('doodleverse_utils/version.py').read())
+
+setup(
+    name="doodleverse_utils",
+    version=__version__,
     author="Daniel Buscombe",
-    author_email="dbuscombe@gmail.email",
-    description="Imports into the Doodleverse",
-    long_description=long_description,
-    long_description_content_type="text/x-rst",
-    packages=setuptools.find_packages(),
+    author_email="dbuscombe@gmail.com",
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type='text/markdown',
+    packages=find_packages(),
     classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ],
-    python_requires=">=3.6",
-    install_requires=requirements,
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Visualization",
+        "Topic :: Scientific/Engineering :: GIS",
+        ],
+    keywords=[
+        "doodleverse",
+        "image segmentation",
+        "remotesensing",
+        "gis",
+        "deep learning",],
+    python_requires="<3.13",
+    project_urls={
+        "Issues": "https://github.com/Doodleverse/doodleverse_utils/issues",
+        "GitHub":"https://github.com/Doodleverse/doodleverse_utils",
+    },
 )
